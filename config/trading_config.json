@@ -1,0 +1,8 @@
+{
+    "pair": "XXBTZUSD",
+    "timeframe": "1h",
+    "sma_length": 25,
+    "depeg_percentage": 4,
+    "volume": 0.001,
+    "check_interval": 3
+}
