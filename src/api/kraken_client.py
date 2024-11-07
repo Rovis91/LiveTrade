@@ -53,37 +53,53 @@ class KrakenClient:
 
     def get_account_balance(self) -> Dict[str, float]:
         """
-        Get account balance.
-        
+        Get account balance as a dictionary.
+
         Returns:
             Dict[str, float]: A dictionary of account balances by currency.
         """
         try:
             balance = self.kraken.get_account_balance()
+            # Convert DataFrame to dict if necessary
+            if isinstance(balance, pd.DataFrame):
+                balance = balance.to_dict('index')
             logger.info("Account balance retrieved successfully")
             return balance
         except Exception as e:
             logger.error(f"Error getting account balance: {str(e)}")
             raise
 
-    def get_ticker_info(self, pair: str) -> Dict[str, Any]:
+    def get_ticker_info(self, pair: str) -> pd.DataFrame:
         """
         Get current ticker information for a trading pair.
         
         Args:
-            pair (str): The currency pair (e.g., "XBTUSD").
+            pair (str): The currency pair (e.g., "EURTUSDT")
         
         Returns:
-            Dict[str, Any]: Ticker information for the specified pair.
+            pd.DataFrame: Ticker information for the specified pair
+            
+        Raises:
+            ValueError: If the pair is invalid or not found
         """
         try:
+            if not isinstance(pair, str) or len(pair) < 3:
+                raise ValueError(f"Invalid trading pair format: {pair}")
+                
+            response = self.api.query_public('Ticker', {'pair': pair})
+            if 'error' in response and response['error']:
+                raise ValueError(f"Kraken API error: {response['error'][0]}")
+                
             ticker = self.kraken.get_ticker_information(pair)
             logger.info(f"Ticker info retrieved for {pair}")
             return ticker
         except Exception as e:
-            logger.error(f"Error getting ticker info: {str(e)}")
+            error_msg = str(e)
+            if 'EQuery:Unknown asset pair' in error_msg:
+                raise ValueError(f"Unknown trading pair: {pair}")
+            logger.error(f"Error getting ticker info: {error_msg}")
             raise
-
+        
     def get_historical_data(self, pair: str, interval: int = 60, since: Optional[int] = None) -> pd.DataFrame:
         """
         Get historical OHLC data for a given trading pair.
